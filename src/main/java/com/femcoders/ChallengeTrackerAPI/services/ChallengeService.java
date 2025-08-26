@@ -10,6 +10,7 @@ import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.NoSuchElementException;
 
@@ -31,6 +32,32 @@ public class ChallengeService {
         Challenge challenge = challengeRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("No challenge found with id " + id));
         return challengeMapperImpl.entityToDto(challenge);
+    }
+
+    public List<ChallengeResponse> getChallengesStartingWithCurrentUser() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+        if (authentication == null || !authentication.isAuthenticated() || !(authentication.getPrincipal() instanceof UserDetail)) {
+            return getAllChallenges();
+        }
+
+        UserDetail currentUserDetail = (UserDetail) authentication.getPrincipal();
+        Long currentUserId = currentUserDetail.getId();
+
+        List<ChallengeResponse> userOwnedChallenges = getChallengesByUserId(currentUserId);
+
+        List<Challenge> allChallengeEntities = challengeRepository.findAll();
+
+        List<ChallengeResponse> otherUsersChallenges = allChallengeEntities.stream()
+                .filter(challenge -> !challenge.getUser().getId().equals(currentUserId))
+                .map(challenge -> challengeMapperImpl.entityToDto(challenge))
+                .toList();
+
+        List<ChallengeResponse> finalOrderedList = new ArrayList<>();
+        finalOrderedList.addAll(userOwnedChallenges);
+        finalOrderedList.addAll(otherUsersChallenges);
+
+        return finalOrderedList;
     }
 
     public List<ChallengeResponse> getChallengesByUserId(Long id) {
