@@ -15,7 +15,8 @@ public class RoleMapperImpl implements RoleMapper{
                 .build();
     }
 
-    @Overridepublic RoleResponse entityToDto(Role role) {
+    @Override
+    public RoleResponse entityToDto(Role role) {
         if (role == null) return null;
 
         return new RoleResponse(
