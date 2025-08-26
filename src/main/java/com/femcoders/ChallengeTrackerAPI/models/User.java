@@ -27,7 +27,7 @@ public class User {
     @Column(nullable = false)
     private String password;
 
-    /*
+    /*it
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(
             name = "users_roles",
