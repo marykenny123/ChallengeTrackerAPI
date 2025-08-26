@@ -1,11 +1,11 @@
-package com.femcoders.ChallengeTrackerAPI.dtos;
+package com.femcoders.ChallengeTrackerAPI.dtos.challenge;
 
 import com.femcoders.ChallengeTrackerAPI.models.Challenge;
 import com.femcoders.ChallengeTrackerAPI.models.User;
 import org.springframework.stereotype.Component;
 
 @Component
-public class ChallengeMapperImpl implements ChallengeMapper{
+public class ChallengeMapperImpl implements ChallengeMapper {
     @Override
     public Challenge dtoToEntity(ChallengeRequest dto, User user) {
         return Challenge.builder()
