@@ -1,4 +1,4 @@
-package com.femcoders.ChallengeTrackerAPI.dtos;
+package com.femcoders.ChallengeTrackerAPI.dtos.challenge;
 
 import com.femcoders.ChallengeTrackerAPI.models.Classification;
 import com.femcoders.ChallengeTrackerAPI.models.Status;
