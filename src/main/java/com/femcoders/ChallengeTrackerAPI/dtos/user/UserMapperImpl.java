@@ -2,6 +2,7 @@ package com.femcoders.ChallengeTrackerAPI.dtos.user;
 
 import com.femcoders.ChallengeTrackerAPI.models.Challenge;
 import com.femcoders.ChallengeTrackerAPI.models.User;
+import com.femcoders.ChallengeTrackerAPI.models.Role;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
