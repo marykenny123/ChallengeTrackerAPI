@@ -14,7 +14,7 @@ public class JwtService {
     private final String JWT_SECRET_KEY = "mySecretKeyForJWTTokenGenerationThatIsAtLeast256BitsLong";
     private final Long JWT_EXPIRATION = 1800000L;
 
-    public String generateToken(userDetail userDetail)  {
+    public String generateToken(UserDetail userDetail)  {
         return buildToken(userDetail, JWT_EXPIRATION);
     }
 
