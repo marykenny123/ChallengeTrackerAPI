@@ -63,7 +63,7 @@ public class UserService implements UserDetailsService {
         }
 
         Role defaultRole = roleRepository.findByRoleNameIgnoreCase("ROLE_USER")
-                .orEkseThrow(() -> new RuntimeException("Default role not found."));
+                .orElseThrow(() -> new RuntimeException("Default role not found."));
 
         List<Role> roles = new ArrayList<>();
         roles.add(defaultRole);

@@ -32,14 +32,14 @@ public class ChallengeService {
         }
     }
 
-    private void checkOwnership(Challenge challenge, UserDetail userDetails) {
-        if (userDetails.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"))) {
-            return;
-        }
-        if (!userDetails.getUsername().equals(challenge.getUser().getUsername())) {
-            throw new AccessDeniedException("You are not authorized to perform this action on this challenge.");
-        }
-    }
+//    private void checkOwnership(Challenge challenge, UserDetail userDetails) {
+//        if (userDetails.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"))) {
+//            return;
+//        }
+//        if (!userDetails.getUsername().equals(challenge.getUser().getUsername())) {
+//            throw new AccessDeniedException("You are not authorized to perform this action on this challenge.");
+//        }
+//    }
 
     public List<ChallengeResponse> getAllChallenges() {
         List<Challenge> challenges = challengeRepository.findAll();
