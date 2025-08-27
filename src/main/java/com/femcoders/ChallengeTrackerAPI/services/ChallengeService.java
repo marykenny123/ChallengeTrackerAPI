@@ -6,10 +6,15 @@ import com.femcoders.ChallengeTrackerAPI.models.Challenge;
 import com.femcoders.ChallengeTrackerAPI.models.User;
 import com.femcoders.ChallengeTrackerAPI.repositories.ChallengeRepository;
 import com.femcoders.ChallengeTrackerAPI.repositories.UserRepository;
+import com.femcoders.ChallengeTrackerAPI.security.UserDetail;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
+import java.nio.channels.IllegalChannelGroupException;
+import java.nio.file.AccessDeniedException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.NoSuchElementException;
@@ -21,17 +26,26 @@ public class ChallengeService {
     private final ChallengeMapperImpl challengeMapperImpl;
     private final UserRepository userRepository;
 
+    private void validateUser(UserDetail userDetails)  {
+        if (userDetails == null || userDetails.getUsername() == null) {
+            throw new IllegalArgumentException("User information is missing or invalid");
+        }
+    }
+
+    private void checkOwnership(Challenge challenge, UserDetail userDetails) {
+        if (userDetails.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"))) {
+            return;
+        }
+        if (!userDetails.getUsername().equals(challenge.getUser().getUsername())) {
+            throw new AccessDeniedException("You are not authorized to perform this action on this challenge.");
+        }
+    }
+
     public List<ChallengeResponse> getAllChallenges() {
         List<Challenge> challenges = challengeRepository.findAll();
         return challenges.stream()
                 .map(challenge -> challengeMapperImpl.entityToDto(challenge))
                 .toList();
-    }
-
-    public ChallengeResponse getChallengeById(Long id) {
-        Challenge challenge = challengeRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("No challenge found with id " + id));
-        return challengeMapperImpl.entityToDto(challenge);
     }
 
     public List<ChallengeResponse> getChallengesStartingWithCurrentUser() {
@@ -60,6 +74,12 @@ public class ChallengeService {
         return finalOrderedList;
     }
 
+    public ChallengeResponse getChallengeById(Long id) {
+        Challenge challenge = challengeRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("No challenge found with id " + id));
+        return challengeMapperImpl.entityToDto(challenge);
+    }
+
     public List<ChallengeResponse> getChallengesByUserId(Long id) {
         User user = userRepository.findById(id).orElseThrow(() -> new NoSuchElementException("No user found with id " + id));
         List<Challenge> challenges = challengeRepository.findAllByUser(user);
@@ -67,7 +87,5 @@ public class ChallengeService {
                 .map(challenge -> challengeMapperImpl.entityToDto(challenge))
                 .toList();
     }
-
-
 
 }
