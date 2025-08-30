@@ -18,4 +18,7 @@ INSERT INTO users_roles(user_id, role_id) VALUES
 
 INSERT INTO challenges(id, title, description, status, classification, difficulty_level, prize, user_id) VALUES
 (1, 'Read more', 'Read one novel each month for 12 months', 'PENDING', 'PERSONAL_DEVELOPMENT', 3, 'Special Spa day treatment', 1),
-(2, 'Eat more fruit and veg', 'Eat one salad and 3 pieces of fruit every day for a month', 'PENDING', 'HEALTH_AND_WELLBEING', 2, 'Trip to the theatre with Sara', 2);
+(2, 'Eat more fruit and veg', 'Eat one salad and 3 pieces of fruit every day for a month', 'PENDING', 'HEALTH_AND_WELLBEING', 2, 'Trip to the theatre with Sara', 2),
+(3, 'Improve social connections by meeting more with the girls', 'Meet for a coffee once each week with Sara, Clara and/or Marie and continue until New Year', 'IN_PROGRESS', 'PERSONAL_RELATIONS', 1, 'Buy myself a 3-session ticket for massage', 1),
+(4, 'Go to the gym more', 'Go to the gym 3 times every week all year 2025', 'IN_PROGRESS', 'HEALTH_AND_WELLBEING', 4, 'Go for a weekend away to Killarney', 4),
+(5, 'Meditation', 'Meditate at least 5 days a week in the morning first thing for at least 10 mins.', 'IN_PROGRESS', 'HEALTH_AND_WELLBEING', 4, 'Go for a weekend away to Killarney in January.', 4);;
