@@ -3,10 +3,11 @@ INSERT INTO roles(id, role_name) VALUES
 (2, 'ROLE_ADMIN');
 
 INSERT INTO users(id, username, email, password) VALUES
-(1, 'Mary', 'mary1234@gmail.com', '$2a$12$ujrtJeyCVy992nYx8SJ8i.b0lLycVo9D5beF8/OOWj.pt1uSFpzHq'),
-(2, 'Carmen', 'carmen@example.com', '$2a$12$mr15uTxw.QQUkbeEEO850ekrpIbTUnbuLJv9id/bnxGm4b1cHPuSO'),
-(3, 'Niamh', 'niamh@example.com', '$2a$12$cQRHt31sbvaFOsYKMVwZy.C9mhIOCRkfcbJWg4.H/HJnlxQsU7OiC'),
-(4, 'Brian', 'brian@example.com', '$2a$12$cQRHt31sbvaFOsYKMVwZy.C9mhIOCRkfcbJWg4.H/HJnlxQsU7OiC');
+(1, 'Mary', 'mary1234@gmail.com', '$2a$12$JQdTEKNfVFd5MgXOPP1/0eYiDCwvQxCJyBBd/Z46oG/Qy9PZw3fri'),
+(2, 'Carmen', 'carmen@example.com', '$2a$12$1uJRArQDAExM/rPq1khp.ua4ZWldvOvOlMeaEt/YPld9KDJamx6F2'),
+(3, 'Niamh', 'niamh@example.com', '$2a$12$ZsJ1tKF1YSG0PA7QabPDMO3Pb6f1OG.HPcMK9BWVFe1GH7BR6sDQW'),
+(4, 'Brian', 'brian@example.com', '$2a$12$DVmuDBhlkLslaR7U0M/vA.hLXYpHYnVcsvnM2k35ISTu7/eXclxMqMary.123');
+
 
 
 INSERT INTO users_roles(user_id, role_id) VALUES
