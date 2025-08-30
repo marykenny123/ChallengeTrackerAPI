@@ -15,8 +15,8 @@ import java.util.List;
 
 
 @RestController
-@RequestMapping
 @RequiredArgsConstructor
+@RequestMapping("/challenges")
 public class ChallengeController {
     private final ChallengeService challengeService;
 
