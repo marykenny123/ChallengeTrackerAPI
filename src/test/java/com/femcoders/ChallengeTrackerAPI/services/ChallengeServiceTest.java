@@ -123,4 +123,56 @@ public class ChallengeServiceTest {
         }
     }
 
+    @Nested
+    @DisplayName("getChallengeById(Long id)")
+    class GetChallengeByIdTests {
+        private User testUser;
+        private Challenge testChallenge;
+        private ChallengeResponse testChallengeResponse;
+
+        @BeforeEach
+        void setup() {
+            testUser = User.builder()
+                    .id(1L)
+                    .username("usertest")
+                    .password("encoder_password")
+                    .roles(Collections.singletonList(createRole("ROLE_USER")))
+                    .build();
+
+            testChallenge = new Challenge(1L, "Read more", "Read one novel each month for 12 months", Status.PENDING, Classification.PERSONAL_DEVELOPMENT, 3, "Special Spa day treatment", testUser);
+            testChallengeResponse = new ChallengeResponse(
+                    testChallenge.getId(), testChallenge.getTitle(), testChallenge.getDescription(), testChallenge.getStatus(), testChallenge.getClassification(),
+                    testChallenge.getDifficultyLevel(), testChallenge.getPrize(), testUser.getUsername()
+            );
+        }
+
+        @Test
+        @DisplayName("Should return ChallengeResponse given a vañid ID")
+        void shouldReturnChallengeResponseGivenAnId() {
+            Long challengeId = 1l;
+
+            given(challengeRepository.findById(challengeId)).willReturn(Optional.of(testChallenge));
+            given(challengeMapperImpl.entityToDto(testChallenge)).willReturn(testChallengeResponse);
+
+            ChallengeResponse result = challengeService.getChallengeById(challengeId);
+
+            assertThat(result).isEqualTo(testChallengeResponse);
+            verify(challengeRepository).findById(challengeId);
+            verify(challengeMapperImpl).entityToDto(testChallenge);
+        }
+
+        @Test
+        @DisplayName("Should throw EntityNotFoundException when Challenge ID is not found")
+        void shouldThrowEntityNotFoundException_whenIdNotFound() {
+            Long nonExistentId = 99L;
+            given(challengeRepository.findById(nonExistentId)).willReturn(Optional.empty());
+
+            assertThatThrownBy(() -> challengeService.getChallengeById(nonExistentId))
+                    .isInstanceOf(EntityNotFoundException.class)
+                    .hasMessageContaining("Challenge not found with id " + nonExistentId);
+
+            verify(challengeRepository).findById(nonExistentId);
+        }
+    }
+
 }
