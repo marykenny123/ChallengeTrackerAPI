@@ -64,6 +64,82 @@ public class ChallengeControllerTest {
                     .andExpect(jsonPath("$[0].difficultyLevel", is(3)))
                     .andExpect(jsonPath("$[0].prize", is("Special Spa day treatment")));
         }
-    }    }
 
-//
+
+        @Test
+        @DisplayName("Should return challenges with expected structure and data types")
+        void getAllChallenges_returnsCorrectStructureAndTypes() throws Exception {
+            performGetRequest("/challenges")
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$[0].id").isNumber())
+                    .andExpect(jsonPath("$[0].title").isString())
+                    .andExpect(jsonPath("$[0].description").isString())
+                    .andExpect(jsonPath("$[0].status").isString())
+                    .andExpect(jsonPath("$[0].classification").isString())
+                    .andExpect(jsonPath("$[0].difficultyLevel").isNumber())
+                    .andExpect(jsonPath("$[0].prize").isString());
+        }
+    }
+
+
+    @Nested
+    @DisplayName("GET /challenges/{id}")
+    class GetChallengeByIdTests {
+        private final Long EXISTING_CHALLENGE_ID = 1L;
+        private final Long NON_EXISTING_CHALLENGE_ID = 99L;
+
+        @Test
+        @DisplayName("Should return the challenge by ID with status 200 OK")
+        void getChallengeById_returnsChallenge_whenIdExists() throws Exception {
+            performGetRequest("/challenges/" + EXISTING_CHALLENGE_ID)
+                    .andExpect(status().isOk())
+                    .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                    .andExpect(jsonPath("$.id", is(EXISTING_CHALLENGE_ID.intValue())))
+                    .andExpect(jsonPath("$.title", is("Read more")))
+                    .andExpect(jsonPath("$.description", is("Read one novel each month for 12 months")));
+
+        }
+
+        @Test
+        @DisplayName("Should return 4041 Not Found when challenge ID does not exist")
+        void getChallengeById_returnsNotFound_whenIdDoesNotExist() throws Exception {
+            performGetRequest("/challenges/" + NON_EXISTING_CHALLENGE_ID)
+                    .andExpect(status().isNotFound());
+        }
+    }
+
+    @Nested
+    @DisplayName("GET /challenges/user/{userId}")
+    class GetChallengesByUserIdTests {
+        private Long USER_WITH_CHALLENGE_ID = 1L;
+        private final Long USER_WITHOUT_CHALLENGE_ID = 3L;
+        private final Long NON_EXISTENT_USER_ID = 99L;
+
+        @Test
+        @DisplayName("Should return a list of challenges for an existing user with challenges")
+        void getChallengesByUserId_returnsEmptyList_whenUserExistsButNoDestinations() throws Exception {
+            performGetRequest("/challenges/user/" + USER_WITH_CHALLENGE_ID)
+                    .andExpect(status().isOk())
+                    .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                    .andExpect(jsonPath("$", hasSize(2)))
+                    .andExpect(jsonPath("$.[0].username", is("Mary")));
+        }
+
+        @Test
+        @DisplayName("Should return an empty list when user exists but has no challenges")
+        void getChallengeByUserId_returnsEmptyList_whenUserExistsButNoChallenges() throws Exception {
+            performGetRequest("/challenges/user/" + USER_WITHOUT_CHALLENGE_ID)
+                    .andExpect(status().isOk())
+                    .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                    .andExpect(jsonPath("$", empty()));
+        }
+
+        @Test
+        @DisplayName("Should return 404 Not Found when user ID does not exist")
+        void getChallengesByUserId_returnsNotFound_whenUserDoesNotExist() throws Exception {
+            performGetRequest("/challenges/user/" + NON_EXISTENT_USER_ID)
+                    .andExpect(status().isNotFound());
+        }
+
+    }
+}
