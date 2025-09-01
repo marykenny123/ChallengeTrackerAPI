@@ -1,7 +1,8 @@
 DELETE FROM users_roles;
-DELETE FROM challenges;
-DELETE FROM users;
+DELETE FROM challenges  ;
 DELETE FROM roles;
+DELETE FROM users;
+
 
 INSERT INTO roles(id, role_name) VALUES
 (1, 'ROLE_USER'),
@@ -12,7 +13,6 @@ INSERT INTO users(id, username, email, password) VALUES
 (2, 'Carmen', 'carmen@example.com', '$2a$12$1uJRArQDAExM/rPq1khp.ua4ZWldvOvOlMeaEt/YPld9KDJamx6F2'),
 (3, 'Niamh', 'niamh@example.com', '$2a$12$ZsJ1tKF1YSG0PA7QabPDMO3Pb6f1OG.HPcMK9BWVFe1GH7BR6sDQW'),
 (4, 'Brian', 'brian@example.com', '$2a$12$DVmuDBhlkLslaR7U0M/vA.hLXYpHYnVcsvnM2k35ISTu7/eXclxMqMary.123');
-
 
 
 INSERT INTO users_roles(user_id, role_id) VALUES
