@@ -38,4 +38,13 @@ public class ChallengeController {
         return ResponseEntity.ok(challenges);
     }
 
+    @PostMapping
+    @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
+    public ResponseEntity<ChallengeResponse> addChallenge(@RequestBody @Valid ChallengeRequest request, @AuthenticationPrincipal UserDetail userDetail) {
+        ChallengeResponse response = challengeService.addChallenge(request, userDetail);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+
+
 }
