@@ -13,7 +13,6 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
-
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/challenges")
@@ -38,4 +37,25 @@ public class ChallengeController {
         return ResponseEntity.ok(challenges);
     }
 
+    @PostMapping
+    @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
+    public ResponseEntity<ChallengeResponse> addChallenge(@RequestBody @Valid ChallengeRequest request, @AuthenticationPrincipal UserDetail userDetail) {
+        ChallengeResponse response = challengeService.addChallenge(request, userDetail);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    @PutMapping("/{id}")
+    @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
+    public ResponseEntity<ChallengeResponse> updateChallenge(
+            @PathVariable Long id, @RequestBody @Valid ChallengeRequest request, @AuthenticationPrincipal UserDetail userDetail) {
+        ChallengeResponse updateChallenge = challengeService.updateChallenge(id, request, userDetail);
+        return ResponseEntity.ok(updateChallenge);
+    }
+
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
+    public ResponseEntity<String> deleteChallenge(@PathVariable Long id, @AuthenticationPrincipal UserDetail userDetail) {
+        String message = challengeService.deleteChallenge(id, userDetail);
+        return new ResponseEntity<>(message, HttpStatus.OK);
+    }
 }
