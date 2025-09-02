@@ -13,7 +13,6 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
-
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/challenges")
@@ -59,6 +58,4 @@ public class ChallengeController {
         String message = challengeService.deleteChallenge(id, userDetail);
         return new ResponseEntity<>(message, HttpStatus.OK);
     }
-
-
 }
