@@ -19,7 +19,7 @@ public record ChallengeRequest(
         @NotNull(message = "Choose from one of the options for classification")
         Classification classification,
 
-        @NotBlank(message ="Choose a difficulty level between 1 and 5, 1 = least difficulult for you and 5 = most difficult level")
+        @NotNull(message ="Choose a difficulty level between 1 and 5, 1 = least difficulult for you and 5 = most difficult level")
         @Min(value = 1, message = "Difficulty level cannot be lower than 1")
         @Max(value = 5, message = "Difficulty leven cannot be higher than 5")
         int difficultyLevel,
