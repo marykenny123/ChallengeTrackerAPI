@@ -58,6 +58,21 @@ public class ChallengeControllerTest {
                 .accept(MediaType.APPLICATION_JSON));
     }
 
+    private ResultActions performPutRequest(String url, Object body, UserDetail userDetail) throws Exception {
+        return mockMvc.perform(put(url)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(asJsonString(body))
+                .with(user(userDetail))
+                .accept(MediaType.APPLICATION_JSON));
+    }
+
+    private ResultActions performPutRequestUnauthenticated(String url, Object body) throws Exception {
+        return mockMvc.perform(put(url)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(asJsonString(body))
+                .accept(MediaType.APPLICATION_JSON));
+    }
+
     @Nested
     @DisplayName("Get / challenges")
     class getAllChallengeTest {

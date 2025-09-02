@@ -229,4 +229,175 @@ public class ChallengeServiceTest {
         }
     }
 
+    @Nested
+    @DisplayName("updateChallenge(Long id, ChallengeRequest challengeRequest, UserDetail userDetails")
+    class UpdateChallengeTests {
+        private User ownerUser;
+        private User otherUser;
+        private User adminUser;
+        private UserDetail ownerUserDetail;
+        private UserDetail otherUserDetail;
+        private UserDetail adminUserDetail;
+        private Challenge ownedChallenge;
+        private Challenge otherChallenge;
+        private ChallengeRequest updateRequest;
+        private Challenge updatedOwnedChallengeEntity;
+        private ChallengeResponse expectedResponse;
+
+        @BeforeEach
+        void setup() {
+            ownerUser = User.builder()
+                    .id(1L)
+                    .username("ownerUser")
+                    .password("encoded_password")
+                    .roles(Collections.singletonList(createRole("ROLE_USER")))
+                    .build();
+            ownerUserDetail = new UserDetail(ownerUser);
+
+            otherUser = User.builder()
+                    .id(2L)
+                    .username("otherUser")
+                    .password("encoded_password")
+                    .roles(Collections.singletonList(createRole("ROLE_USER")))
+                    .build();
+            otherUserDetail = new UserDetail(otherUser);
+
+            adminUser = User.builder()
+                    .id(3L)
+                    .username("adminUser")
+                    .password("encoded_password")
+                    .roles(Collections.singletonList(createRole("ROLE_ADMIN")))
+                    .build();
+            adminUserDetail = new UserDetail(adminUser);
+
+            ownedChallenge = new Challenge(100L, "Stretch my body", "Do 10 mins stretching every morning", Status.IN_PROGRESS, Classification.HEALTH_AND_WELLBEING, 3, "Buy myself a garmin watch", ownerUser);
+            otherChallenge = new Challenge(200L, "Do yoga", "Go to yoga class twice every week", Status.IN_PROGRESS, Classification.HEALTH_AND_WELLBEING, 1, "Treat myself to an ice-cream", otherUser);
+
+            updateRequest = new ChallengeRequest("Updated Title", "Updated Description", Status.COMPLETED_SATISFACTORILY, Classification.FINANCES, 5, "Updated Prize");
+
+            updatedOwnedChallengeEntity = Challenge.builder()
+                    .id(ownedChallenge.getId())
+                    .title(ownedChallenge.getTitle())
+                    .description(ownedChallenge.getDescription())
+                    .status(ownedChallenge.getStatus())
+                    .classification(ownedChallenge.getClassification())
+                    .difficultyLevel(ownedChallenge.getDifficultyLevel())
+                    .prize(ownedChallenge.getPrize())
+                    .user(ownerUser)
+                    .build();
+
+            expectedResponse = new ChallengeResponse(
+                    updatedOwnedChallengeEntity.getId(),
+                    updatedOwnedChallengeEntity.getTitle(),
+                    updatedOwnedChallengeEntity.getDescription(),
+                    updatedOwnedChallengeEntity.getStatus(),
+                    updatedOwnedChallengeEntity.getClassification(),
+                    updatedOwnedChallengeEntity.getDifficultyLevel(),
+                    updatedOwnedChallengeEntity.getPrize(),
+                    ownerUser.getUsername()
+            );
+        }
+
+        @Test
+        @DisplayName("Should uodate challenge successfully when authorized as owner")
+        void shouldUpdateChallengeSuccessfullt_whenAuthorizedAsOwner() {
+            Long challengeId = ownedChallenge.getId();
+
+            given(challengeRepository.findById(challengeId)).willReturn(Optional.of(ownedChallenge));
+
+            given(challengeRepository.save(ArgumentMatchers.any(Challenge.class))).willReturn(updatedOwnedChallengeEntity);
+
+            given(challengeMapperImpl.entityToDto(updatedOwnedChallengeEntity)).willReturn(expectedResponse);
+
+            ChallengeResponse result = challengeService.updateChallenge(challengeId, updateRequest, ownerUserDetail);
+
+            assertThat(result).isEqualTo(expectedResponse);
+            verify(challengeRepository).findById(challengeId);
+
+            verify(challengeRepository).save(ArgumentMatchers.any(Challenge.class));
+            verify(challengeMapperImpl).entityToDto(updatedOwnedChallengeEntity);
+        }
+
+        @Test
+        @DisplayName(("Should update challenge successfully when authorized as admin"))
+        void shouldUpdateChallengeSuccessfully_whenAuthorizedAsAdmin() {
+            Long challengeId = otherChallenge.getId();
+            Challenge updatedOtherChallengeEntity = Challenge.builder()
+                    .id(otherChallenge.getId())
+                    .title(otherChallenge.getTitle())
+                    .description(otherChallenge.getDescription())
+                    .status(otherChallenge.getStatus())
+                    .classification(otherChallenge.getClassification())
+                    .difficultyLevel(otherChallenge.getDifficultyLevel())
+                    .prize(otherChallenge.getPrize())
+                    .user(otherUser)
+                    .build();
+            ChallengeResponse expectedAdminResponse = new ChallengeResponse(
+                    updatedOwnedChallengeEntity.getId(),
+                    updatedOtherChallengeEntity.getTitle(),
+                    updatedOtherChallengeEntity.getDescription(),
+                    updatedOtherChallengeEntity.getStatus(),
+                    updatedOtherChallengeEntity.getClassification(),
+                    updatedOtherChallengeEntity.getDifficultyLevel(),
+                    updatedOtherChallengeEntity.getPrize(),
+                    otherUser.getUsername()
+            );
+
+            given(challengeRepository.findById(challengeId)).willReturn(Optional.of(otherChallenge));
+            given(challengeRepository.save(ArgumentMatchers.any(Challenge.class))).willReturn(updatedOtherChallengeEntity);
+            given(challengeMapperImpl.entityToDto(updatedOtherChallengeEntity)).willReturn(expectedAdminResponse);
+
+            ChallengeResponse result = challengeService.updateChallenge(challengeId, updateRequest, adminUserDetail);
+
+            assertThat(result).isEqualTo(expectedAdminResponse);
+            verify(challengeRepository).findById(challengeId);
+            verify(challengeRepository).save(ArgumentMatchers.any(Challenge.class));
+            verify(challengeMapperImpl).entityToDto(updatedOtherChallengeEntity);
+        }
+
+        @Test
+        @DisplayName("Should throw AccessDeniedException when regular user is not the owner")
+        void shouldThrowAccessDeniedException_whenRegularUserIsNotOwner() {
+            Long challengeId = otherChallenge.getId();
+            given(challengeRepository.findById(challengeId)).willReturn(Optional.of(otherChallenge));
+
+            assertThatThrownBy(() -> challengeService.updateChallenge(challengeId, updateRequest, ownerUserDetail))
+                    .isInstanceOf(AccessDeniedException.class)
+                    .hasMessage("You are not authorized to perform this action on this challenge.");
+
+            verify(challengeRepository).findById(challengeId);
+            verify(challengeRepository, never()).save(ArgumentMatchers.any(Challenge.class));
+            verify(challengeMapperImpl, never()).entityToDto(ArgumentMatchers.any(Challenge.class));
+        }
+
+        @Test
+        @DisplayName("Should throw IllegalArgumentException when UserDetail is missing or invalid")
+        void shouldThrowIllegalArgumentException_whenUserDetailsIsInvalid() {
+            Long challengeId = ownedChallenge.getId();
+
+            assertThatThrownBy(() -> challengeService.updateChallenge(challengeId, updateRequest, null))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessage("User information is missing or invalid");
+
+            verify(challengeRepository, never()).findById(ArgumentMatchers.anyLong());
+            verify(challengeRepository, never()).save(ArgumentMatchers.any(Challenge.class));
+            verify(challengeMapperImpl, never()).entityToDto(ArgumentMatchers.any(Challenge.class));
+        }
+
+        @Test
+        @DisplayName("Should throw EntityNotFoundException when Destination ID is not found")
+        void shouldThrowEntityNotFoundException_whenChallengeIdNotFound() {
+            Long nonExistentId = 999L;
+            given(challengeRepository.findById(nonExistentId)).willReturn(Optional.empty());
+
+            assertThatThrownBy(() -> challengeService.updateChallenge(nonExistentId, updateRequest, ownerUserDetail))
+                    .isInstanceOf(EntityNotFoundException.class)
+                    .hasMessage("Challenge not found with id " + nonExistentId);
+
+            verify(challengeRepository).findById(nonExistentId);
+            verify(challengeRepository, never()).save(ArgumentMatchers.any(Challenge.class));
+            verify(challengeMapperImpl, never()).entityToDto(ArgumentMatchers.any(Challenge.class));
+        }
+    }
+
 }
