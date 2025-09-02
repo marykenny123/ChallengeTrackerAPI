@@ -147,7 +147,7 @@ public class ChallengeServiceTest {
         }
 
         @Test
-        @DisplayName("Should return ChallengeResponse given a vañid ID")
+        @DisplayName("Should return ChallengeResponse given a valid ID")
         void shouldReturnChallengeResponseGivenAnId() {
             Long challengeId = 1l;
 
@@ -172,6 +172,60 @@ public class ChallengeServiceTest {
                     .hasMessageContaining("Challenge not found with id " + nonExistentId);
 
             verify(challengeRepository).findById(nonExistentId);
+        }
+    }
+
+    @Nested
+    @DisplayName("addChallenge(ChallengeRequest, UserDetail)")
+    class AddChallengeTests {
+        private User testUser;
+        private UserDetail testUserDetail;
+        private ChallengeRequest validRequest;
+        private Challenge savedChallengeEntity;
+        private ChallengeResponse expectedResponse;
+
+        @BeforeEach
+        void setup() {
+            testUser = User.builder()
+                    .id(1L)
+                    .username("usertest")
+                    .password("encoded_password")
+                    .roles(Collections.singletonList(createRole("ROLE_USER")))
+                    .build();
+            testUserDetail = new UserDetail(testUser);
+
+            validRequest = new ChallengeRequest("Read more", "Read one novel each month for 12 months", Status.PENDING, Classification.PERSONAL_DEVELOPMENT, 3, "Special Spa day treatment");
+            savedChallengeEntity    = Challenge.builder()
+                    .id(1L)
+                    .title(validRequest.title())
+                    .description(validRequest.description())
+                    .status(validRequest.status())
+                    .classification(validRequest.classification())
+                    .difficultyLevel(validRequest.difficultyLevel())
+                    .prize((validRequest.prize()))
+                    .user(testUser)
+                    .build();
+            expectedResponse = new ChallengeResponse(
+                    savedChallengeEntity.getId(), savedChallengeEntity.getTitle(), savedChallengeEntity.getDescription(), savedChallengeEntity.getStatus(),
+                    savedChallengeEntity.getClassification(), savedChallengeEntity.getDifficultyLevel(), savedChallengeEntity.getPrize(),testUser.getUsername()
+            );
+        }
+
+        @Test
+        @DisplayName("Should add a challenge successfully when user is valid")
+        void shouldAddChallengeSuccessfully_whenUserIsValid() {
+            given(userRepository.findByUsernameIgnoreCase(testUser.getUsername())).willReturn(Optional.of(testUser));
+            given(challengeMapperImpl.dtoToEntity(validRequest, testUser)).willReturn(savedChallengeEntity);
+            given(challengeRepository.save(savedChallengeEntity)).willReturn(savedChallengeEntity);
+            given(challengeMapperImpl.entityToDto(savedChallengeEntity)).willReturn(expectedResponse);
+
+            ChallengeResponse response = challengeService.addChallenge(validRequest, testUserDetail);
+
+            assertThatThrownBy(() -> challengeService.addChallenge(validRequest, null))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessage("User information is missing or invalid");
+
+            verify(userRepository).findByUsernameIgnoreCase(org.mockito.ArgumentMatchers.anyString());
         }
     }
 
