@@ -45,6 +45,13 @@ public class ChallengeController {
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
+    @PutMapping("/{id}")
+    @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
+    public ResponseEntity<ChallengeResponse> updateChallenge(
+            @PathVariable Long id, @RequestBody @Valid ChallengeRequest request, @AuthenticationPrincipal UserDetail userDetail) {
+        ChallengeResponse updateChallenge = challengeService.updateChallenge(id, request, userDetail);
+        return ResponseEntity.ok(updateChallenge);
+    }
 
 
 }
