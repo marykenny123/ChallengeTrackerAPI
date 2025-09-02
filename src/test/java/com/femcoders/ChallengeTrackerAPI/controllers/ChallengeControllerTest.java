@@ -1,8 +1,12 @@
 package com.femcoders.ChallengeTrackerAPI.controllers;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.femcoders.ChallengeTrackerAPI.dtos.challenge.ChallengeRequest;
 import com.femcoders.ChallengeTrackerAPI.models.Classification;
+import com.femcoders.ChallengeTrackerAPI.models.Role;
 import com.femcoders.ChallengeTrackerAPI.models.Status;
+import com.femcoders.ChallengeTrackerAPI.models.User;
+import com.femcoders.ChallengeTrackerAPI.security.UserDetail;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -43,6 +47,14 @@ public class ChallengeControllerTest {
     private ResultActions performGetRequest(String url) throws Exception {
         return mockMvc.perform(get(url)
                 .with(user("testuser").roles("USER"))
+                .accept(MediaType.APPLICATION_JSON));
+    }
+
+    private ResultActions performPostRequest(String url, Object body, UserDetail userDetail) throws Exception {
+        return mockMvc.perform(post(url)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(asJsonString(body))
+                .with(user(userDetail))
                 .accept(MediaType.APPLICATION_JSON));
     }
 
@@ -141,5 +153,120 @@ public class ChallengeControllerTest {
                     .andExpect(status().isNotFound());
         }
 
+    }
+
+    @Nested
+    @DisplayName("POST /challenges")
+    class AddChallengeTests {
+
+        private static final String ROLE_USER_NAME = "ROLE_USER";
+        private static final String ROLE_ADMIN_NAME = "ROLE_ADMIN";
+
+        private User userEntityUserRole;
+        private UserDetail userDetailUserRole;
+
+        private User userEntityAdminRole;
+        private UserDetail userDetailAdminRole;
+
+        private User userEntityNonExistent;
+        private UserDetail userDetailNonExistent;
+
+        private ChallengeRequest validChallengeRequest;
+
+        private final String EXISTING_USERNAME_USER = "Carmen";
+            private final String EXISTING_USERNAME_ADMIN = "Mary";
+            private final String NON_EXISTENT_USERNAME = "usertest";
+
+            private Role createRole(String roleName) {
+                Role role = new Role();
+                role.setRoleName(roleName);
+                return role;
+            }
+
+            @BeforeEach
+            void setuo() {
+                validChallengeRequest = new ChallengeRequest(
+                        "Eat more fruit and veg",
+                        "Eat one salad and 3 pieces of fruit every day for a month",
+                        Status.PENDING,
+                        Classification.HEALTH_AND_WELLBEING,
+                        2,
+                        "Trip to the theatre with Sara"
+                );
+
+                Role userRole = createRole(ROLE_USER_NAME);
+
+                userEntityUserRole = User.builder()
+                        .id(2L)
+                        .username(EXISTING_USERNAME_USER)
+                        .password("any_encoded_password")
+                        .roles(Collections.singletonList(userRole))
+                        .build();
+                userDetailUserRole = new UserDetail(userEntityUserRole);
+
+                Role adminRole = createRole(ROLE_ADMIN_NAME);
+
+                userEntityAdminRole = User.builder()
+                        .id(1L)
+                        .username(EXISTING_USERNAME_ADMIN)
+                        .password("any_encoded_password")
+                        .roles(Collections.singletonList(adminRole))
+                        .build();
+                userDetailAdminRole = new UserDetail(userEntityAdminRole);
+
+                Role nonExistentUserRole = createRole(ROLE_USER_NAME);
+
+                userEntityNonExistent = User.builder()
+                        .id(99L)
+                        .username(NON_EXISTENT_USERNAME)
+                        .password("any_encoded_password")
+                        .roles(Collections.singletonList(nonExistentUserRole))
+                        .build();
+                userDetailNonExistent = new UserDetail(userEntityNonExistent);
+            }
+
+            @Test
+            @DisplayName("Should create a new challenge when authenticated as USER with valid data (201 Created)")
+            void addChallenge_createsNewDestination_whenUserAuthenticatedAndValid() throws Exception {
+                performPostRequest("/challenges", validChallengeRequest, userDetailUserRole)
+                        .andExpect(status().isCreated())
+                        .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                        .andExpect(jsonPath("$.id").isNumber())
+                        .andExpect(jsonPath("$.title").isString())
+                        .andExpect(jsonPath("$.description").isString())
+                        .andExpect(jsonPath("$.status").isString())
+                        .andExpect(jsonPath("$.classification").isString())
+                        .andExpect(jsonPath("$.difficultyLevel").isNumber())
+                        .andExpect(jsonPath("$.username", is(EXISTING_USERNAME_USER)));
+
+                mockMvc.perform(get("/challenges")
+                            .accept(MediaType.APPLICATION_JSON))
+                        .andExpect(status().isOk())
+                        .andExpect(jsonPath("$", hasSize(6)));
+            }
+
+            @Test
+            @DisplayName("Should return 400 Bad Request when request body is invalid (e.g. empty description)")
+            void addChallenge_returnBadRequest_whenInvalidData() throws Exception {
+                ChallengeRequest invalidRequest = new ChallengeRequest(
+                      "Stop biting my nails",
+                      "",
+                      Status.PENDING,
+                        Classification.PERSONAL_DEVELOPMENT,
+                        3,
+                        "Get a manicure"
+                );
+
+                performPostRequest("/challenges", invalidRequest, userDetailUserRole)
+                        .andExpect(status().isBadRequest())
+                        .andExpect(jsonPath("$.details.description", is("A brief description is required")));
+            }
+
+            @Test
+            @DisplayName("Should return 404 Not Found when authenticated user does not exist in DB")
+            void addChallenge_returnsNotFound_whenAuthenticatedUserDoesNotExistInDB() throws Exception {
+                performPostRequest("/challenges", validChallengeRequest, userDetailNonExistent)
+                        .andExpect(status().isNotFound());
+            }
     }
 }
