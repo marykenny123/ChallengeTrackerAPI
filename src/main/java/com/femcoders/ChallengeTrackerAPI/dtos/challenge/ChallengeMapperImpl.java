@@ -15,6 +15,7 @@ public class ChallengeMapperImpl implements ChallengeMapper {
                 .classification(dto.classification())
                 .difficultyLevel(dto.difficultyLevel())
                 .prize(dto.prize())
+                .user(user)
                 .build();
     }
 
