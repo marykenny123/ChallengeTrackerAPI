@@ -400,4 +400,100 @@ public class ChallengeServiceTest {
         }
     }
 
+    @Nested
+    @DisplayName("deleteChallenge(Long id, UserDetail userDetails)")
+    class DeleteChallengeTests {
+        private User ownerUser;
+        private User otherUser;
+        private User adminUser;
+        private UserDetail ownerUserDetail;
+        private UserDetail otherUserDetail;
+        private UserDetail adminUserDetail;
+        private Challenge ownedChallenge;
+        private Challenge otherChallenge;
+
+        @BeforeEach
+        void setup() {
+            ownerUser = User.builder()
+                    .id(1L)
+                    .username("ownerUser")
+                    .password("encoded_password")
+                    .roles(Collections.singletonList(createRole("ROLE_USER")))
+                    .build();
+            ownerUserDetail = new UserDetail(ownerUser);
+
+            otherUser = User.builder()
+                    .id(1L)
+                    .username("otherUser")
+                    .password("encoded_password")
+                    .roles(Collections.singletonList(createRole("ROLE_USER")))
+                    .build();
+            otherUserDetail = new UserDetail(otherUser);
+
+            adminUser = User.builder()
+                    .id(1L)
+                    .username("adminUser")
+                    .password("encoded_password")
+                    .roles(Collections.singletonList(createRole("ROLE_ADMIN")))
+                    .build();
+            adminUserDetail = new UserDetail(adminUser);
+
+            ownedChallenge = new Challenge(100L, "Stretch my body", "Do 10 mins stretching every morning", Status.IN_PROGRESS, Classification.HEALTH_AND_WELLBEING, 3, "Buy myself a garmin watch", ownerUser);
+            otherChallenge = new Challenge(200L, "Do yoga", "Go to yoga class twice every week", Status.IN_PROGRESS, Classification.HEALTH_AND_WELLBEING, 1, "Treat myself to an ice-cream", otherUser);
+        }
+
+        @Test
+        @DisplayName("Should delete challenge successfully when authorized as owner")
+        void shouldDeleteChallengeSuccessfully_whenAuthorizedAsOwner() {
+            Long challengeId = ownedChallenge.getId();
+            given(challengeRepository.findById(challengeId)).willReturn(Optional.of(ownedChallenge));
+
+            String result = challengeService.deleteChallenge(challengeId, ownerUserDetail);
+
+            assertThat(result).isEqualTo("Challenge with id " + challengeId + " has been deleted");
+            verify(challengeRepository).findById(challengeId);
+            verify(challengeRepository).delete(ownedChallenge);
+        }
+
+        @Test
+        @DisplayName("Should throw AccessDeniedException when regular user is not the owner")
+        void shouldThrowAccessDeniedException_whenRegularUserIsNotOwner() {
+            Long challengeId = otherChallenge.getId();
+            given(challengeRepository.findById(challengeId)).willReturn(Optional.of(otherChallenge));
+
+            assertThatThrownBy(() -> challengeService.deleteChallenge(challengeId, ownerUserDetail))
+                    .isInstanceOf(AccessDeniedException.class)
+                    .hasMessage("You are not authorized to perform this action on this challenge.");
+
+            verify(challengeRepository).findById(challengeId);
+            verify(challengeRepository, never()).delete(ArgumentMatchers.any(Challenge.class));
+        }
+
+        @Test
+        @DisplayName("Should throw IllegalArgumentException when UserDetail is missing or invalid")
+        void shouldThrowIllegalArgumentException_whenUserDetailsIsInvalid() {
+            Long challengeId = ownedChallenge.getId();
+
+            assertThatThrownBy(() -> challengeService.deleteChallenge(challengeId, null))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessage("User information is missing or invalid");
+
+            verify(challengeRepository, never()).findById(ArgumentMatchers.anyLong());
+            verify(challengeRepository, never()).delete(ArgumentMatchers.any(Challenge.class));
+        }
+
+        @Test
+        @DisplayName("Should throw EntityNotFoundException when Challenge ID is not found")
+        void shouldThrowEntityNotFoundException_whenChallengeIdNotFound() {
+            Long nonExistentId = 999L;
+            given(challengeRepository.findById(nonExistentId)).willReturn(Optional.empty());
+
+            assertThatThrownBy(() -> challengeService.deleteChallenge(nonExistentId, ownerUserDetail))
+                    .isInstanceOf(EntityNotFoundException.class)
+                    .hasMessageContaining("Challenge not found with id " + nonExistentId);
+
+            verify(challengeRepository).findById(nonExistentId);
+            verify(challengeRepository, never()).delete(ArgumentMatchers.any(Challenge.class));
+        }
+    }
 }
