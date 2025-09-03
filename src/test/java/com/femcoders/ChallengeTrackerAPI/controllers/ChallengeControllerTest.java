@@ -284,4 +284,149 @@ public class ChallengeControllerTest {
                         .andExpect(status().isNotFound());
             }
     }
+
+    @Nested
+    @DisplayName("PUT /challenges/{id}")
+    class UpdateChallengeTests {
+
+        private final Long CHALLENGE_ID_OWNED_BY_USER_CARMEN = 2L;
+        private final Long CHALLENGE_ID_OWNED_BY_USER_BRIAN = 4L;
+        private final Long NON_EXISTENT_CHALLENGE_ID = 99L;
+
+        private UserDetail userDetailUserCarmen;
+        private UserDetail userDetailAdminMary;
+        private UserDetail userDetailUserBrian;
+
+        private ChallengeRequest validUpdateRequest;
+        private ChallengeRequest invalidUpdateRequest;
+
+        private Role createRole(String roleName) {
+            Role role = new Role();
+            role.setRoleName(roleName);
+            return role;
+        }
+
+        @BeforeEach
+        void setup() {
+            User userCarmenEntity = User.builder()
+                    .id(2L)
+                    .username("Carmen")
+                    .password("any_encoded_password")
+                    .roles(Collections.singletonList(createRole("ROLE_USER")))
+                    .build();
+            userDetailUserCarmen = new UserDetail(userCarmenEntity);
+
+            User userMaryEntity = User.builder()
+                    .id(1L)
+                    .username("Mary")
+                    .password("any_encoded_password")
+                    .roles(Collections.singletonList(createRole("ROLE_ADMIN")))
+                    .build();
+            userDetailAdminMary = new UserDetail(userMaryEntity);
+
+            User userBrianEntity = User.builder()
+                    .id(4L)
+                    .username("Brian")
+                    .password("any_encoded_password")
+                    .roles(Collections.singletonList(createRole("ROLE_USER")))
+                    .build();
+            userDetailUserBrian = new UserDetail(userBrianEntity);
+
+            validUpdateRequest = new ChallengeRequest(
+                    "Walk more",
+                    "Go for a 20 min walk every day",
+                    Status.IN_PROGRESS,
+                    Classification.HEALTH_AND_WELLBEING,
+                    2,
+                    "Get a massage as a prize to myself"
+            );
+
+            invalidUpdateRequest = new ChallengeRequest(
+                    "",
+                    "Go for a 20 min walk every day",
+                    Status.IN_PROGRESS,
+                    Classification.HEALTH_AND_WELLBEING,
+                    2,
+                    "Get a massage as a prize to myself"
+            );
+        }
+
+        @Test
+        @DisplayName("Should delete challenge successfully when authenticated as owner (200 OK)")
+        void updateChallenge_vyOwner_returnsOk() throws Exception {
+            Long targetChallengeId = CHALLENGE_ID_OWNED_BY_USER_CARMEN;
+
+            performPutRequest("/challenges/" + targetChallengeId, validUpdateRequest, userDetailUserCarmen)
+                    .andExpect(status().isOk())
+                    .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                    .andExpect(jsonPath("$.id", is(targetChallengeId.intValue())))
+                    .andExpect(jsonPath("$.title", is(validUpdateRequest.title())))
+                    .andExpect(jsonPath("$.description", is(validUpdateRequest.description())))
+                    .andExpect(jsonPath("$.status", is(validUpdateRequest.status().toString())))
+                    .andExpect(jsonPath("$.classification", is(validUpdateRequest.classification().toString())))
+                    .andExpect(jsonPath("$.difficultyLevel", is(validUpdateRequest.difficultyLevel())))
+                    .andExpect(jsonPath("$.prize", is(validUpdateRequest.prize())))
+                    .andExpect(jsonPath("$.username", is(userDetailUserCarmen.getUsername())));
+
+            mockMvc.perform(get("/challenges/" + targetChallengeId)
+                    .with(user(userDetailUserCarmen))
+                    .accept(MediaType.APPLICATION_JSON))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.title", is(validUpdateRequest.title())))
+                    .andExpect(jsonPath("$.description", is(validUpdateRequest.description())));
+        }
+
+        @Test
+        @DisplayName("Should update challenge successfully when authenticated as admin (200 OK)")
+        void updateChallenge_byAdmin_returnsOk() throws Exception {
+            Long targetChallengeId = CHALLENGE_ID_OWNED_BY_USER_BRIAN;
+
+            performPutRequest("/challenges/" + targetChallengeId, validUpdateRequest, userDetailAdminMary)
+                    .andExpect(jsonPath("$.id", is(targetChallengeId.intValue())))
+                    .andExpect(jsonPath("$.title", is(validUpdateRequest.title())))
+                    .andExpect(jsonPath("$.description", is(validUpdateRequest.description())))
+                    .andExpect(jsonPath("$.status", is(validUpdateRequest.status().toString())))
+                    .andExpect(jsonPath("$.classification", is(validUpdateRequest.classification().toString())))
+                    .andExpect(jsonPath("$.difficultyLevel", is(validUpdateRequest.difficultyLevel())))
+                    .andExpect(jsonPath("$.prize", is(validUpdateRequest.prize())))
+                    .andExpect(jsonPath("$.username", is(userDetailUserBrian.getUsername())));
+
+            mockMvc.perform(get("/challenges/" + targetChallengeId)
+                    .with(user(userDetailAdminMary))
+                    .accept(MediaType.APPLICATION_JSON))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.title", is(validUpdateRequest.title())))
+                    .andExpect(jsonPath("$.description", is(validUpdateRequest.description())));
+        }
+
+        @Test
+        @DisplayName("Should return 400 Bad Request when request vody is invalid (e.g., empty title)")
+        void updateChallenge_returnsBadRequest_whenInvalidData() throws Exception {
+            Long targetChallengeId = CHALLENGE_ID_OWNED_BY_USER_BRIAN;
+
+            performPutRequest("/challenges/" + targetChallengeId, validUpdateRequest, userDetailUserCarmen)
+                    .andExpect(status().isForbidden())
+                    .andExpect(jsonPath("$.message", is("You are not authorized to perform this action on this challenge.")));
+        }
+
+        @Test
+        @DisplayName("Should return 404 Not Found when challenge ID does not exist")
+        void updateChallenge_idNotFound_returnsNotFound() throws Exception {
+            Long targetChallengeId = NON_EXISTENT_CHALLENGE_ID;
+
+            performPutRequest("/challenges/" + targetChallengeId, validUpdateRequest, userDetailUserCarmen)
+                    .andExpect(status().isNotFound())
+                    .andExpect(jsonPath("$.message", is("Challenge not found with id " + targetChallengeId)));
+        }
+
+        @Test
+        @DisplayName("Should return 401 Unauthorized when not authenticated")
+        void updateChallenge_unauthenticated_returnsUnauthorized() throws Exception {
+            Long targetChallengeId = CHALLENGE_ID_OWNED_BY_USER_CARMEN;
+
+            performPutRequestUnauthenticated("/challenges/" + targetChallengeId, validUpdateRequest)
+                    .andExpect(status().isUnauthorized());
+        }
+    }
+
 }
