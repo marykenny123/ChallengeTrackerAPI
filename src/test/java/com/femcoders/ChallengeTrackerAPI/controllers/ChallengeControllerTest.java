@@ -73,6 +73,20 @@ public class ChallengeControllerTest {
                 .accept(MediaType.APPLICATION_JSON));
     }
 
+    private ResultActions performDeleteRequest(String url, UserDetail userDetail) throws Exception {
+        return mockMvc.perform(delete(url)
+                .with(user(userDetail))
+                .accept(MediaType.APPLICATION_JSON));
+    }
+
+    private ResultActions performDeleteRequestUnauthenticated(String url) throws Exception {
+        return mockMvc.perform(delete(url)
+                .accept(MediaType.APPLICATION_JSON));
+    }
+
+
+
+
     @Nested
     @DisplayName("Get / challenges")
     class getAllChallengeTest {
@@ -189,13 +203,13 @@ public class ChallengeControllerTest {
         private ChallengeRequest validChallengeRequest;
 
         private final String EXISTING_USERNAME_USER = "Carmen";
-            private final String EXISTING_USERNAME_ADMIN = "Mary";
-            private final String NON_EXISTENT_USERNAME = "usertest";
+        private final String EXISTING_USERNAME_ADMIN = "Mary";
+        private final String NON_EXISTENT_USERNAME = "usertest";
 
-            private Role createRole(String roleName) {
-                Role role = new Role();
-                role.setRoleName(roleName);
-                return role;
+        private Role createRole(String roleName) {
+            Role role = new Role();
+            role.setRoleName(roleName);
+            return role;
             }
 
             @BeforeEach
@@ -429,4 +443,91 @@ public class ChallengeControllerTest {
         }
     }
 
+    @Nested
+    @DisplayName("DELETE /challenges/{id}")
+    class DeleteChallengeTests {
+
+        private final Long CHALLENGE_ID_OWNED_BY_USER_CARMEN = 2L;
+        private final Long CHALLENGE_ID_OWNED_BY_OTHER_USER = 4L;
+        private final Long NON_EXISTENT_CHALLENGE_ID = 99L;
+
+        private UserDetail userDetailUserCarmen;
+        private UserDetail userDetailAdminMary;
+        private UserDetail userDetailUserBrian;
+
+        private Role createRole(String roleName) {
+            Role role = new Role();
+            role.setRoleName(roleName);
+            return role;
+        }
+
+        @BeforeEach
+        void setup() {
+            User userCarmenEntity = User.builder()
+                    .id(2L)
+                    .username("Carmen")
+                    .password("any_encoded_password")
+                    .roles(Collections.singletonList(createRole("ROLE_USER")))
+                    .build();
+            userDetailUserCarmen = new UserDetail(userCarmenEntity);
+
+            User userMaryEntity = User.builder()
+                    .id(1L)
+                    .username("Mary")
+                    .password("any_encoded_password")
+                    .roles(Collections.singletonList(createRole("ROLE_ADMIN")))
+                    .build();
+            userDetailAdminMary = new UserDetail(userMaryEntity);
+
+            User userBrianEntity = User.builder()
+                    .id(4L)
+                    .username("Brian")
+                    .password("any_encoded_password")
+                    .roles(Collections.singletonList(createRole("ROLE_USER")))
+                    .build();
+            userDetailUserBrian = new UserDetail(userBrianEntity);
+        }
+
+        @Test
+        @DisplayName("Should delete challenge successfully when authenticated as owner (200 OK)")
+        void deleteChallenge_byOwner_returnsOk() throws Exception {
+            performDeleteRequest("/challenges/" + CHALLENGE_ID_OWNED_BY_USER_CARMEN, userDetailUserCarmen)
+                    .andExpect(status().isOk())
+                    .andExpect(content().string(is("Challenge with id " + CHALLENGE_ID_OWNED_BY_USER_CARMEN + " has been deleted")));
+
+
+            mockMvc.perform(get("/challenged/" + CHALLENGE_ID_OWNED_BY_USER_CARMEN)
+                            .with(user(userDetailUserCarmen))
+                            .accept(MediaType.APPLICATION_JSON))
+                    .andExpect(status().isNotFound());
+        }
+
+        @Test
+        @DisplayName("Should delete challenge successfully when authenticated as admin (200 ok)")
+        void deleteChallenge_byAdmin_returnsOk() throws Exception {
+            performDeleteRequest("/challenges/" + CHALLENGE_ID_OWNED_BY_OTHER_USER, userDetailAdminMary)
+                    .andExpect(status().isOk())
+                    .andExpect(content().string(is("Challenge with id " + CHALLENGE_ID_OWNED_BY_OTHER_USER + " has been deleted")));
+
+            mockMvc.perform(get("/challenges" + CHALLENGE_ID_OWNED_BY_OTHER_USER)
+                    .with(user(userDetailAdminMary))
+                    .accept(MediaType.APPLICATION_JSON))
+                    .andExpect(status().isNotFound());
+        }
+
+        @Test
+        @DisplayName("Should returne 404 Not Found when challenge ID does not exist")
+        void deleteChallenge_idNotFound_returnsNotFound() throws Exception {
+            performDeleteRequest("/challenges/" + NON_EXISTENT_CHALLENGE_ID, userDetailUserCarmen)
+                    .andExpect(status().isNotFound())
+                    .andExpect(jsonPath("$.message", is("Challenge not found with id " + NON_EXISTENT_CHALLENGE_ID)));
+        }
+
+        @Test
+        @DisplayName("Should return 401 Unauthorized when not authenticated")
+        void deleteChallenge_unauthenticated_returnsUnauthorized() throws Exception {
+            performDeleteRequestUnauthenticated("/challenges/" + CHALLENGE_ID_OWNED_BY_USER_CARMEN)
+                    .andExpect(status().isUnauthorized());
+        }
+    }
 }
