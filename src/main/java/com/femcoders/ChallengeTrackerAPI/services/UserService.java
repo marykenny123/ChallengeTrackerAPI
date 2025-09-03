@@ -4,6 +4,7 @@ import com.femcoders.ChallengeTrackerAPI.dtos.user.UserMapperImpl;
 import com.femcoders.ChallengeTrackerAPI.dtos.user.UserRequest;
 import com.femcoders.ChallengeTrackerAPI.dtos.user.UserResponse;
 import com.femcoders.ChallengeTrackerAPI.exceptions.EntityNotFoundException;
+import com.femcoders.ChallengeTrackerAPI.models.Challenge;
 import com.femcoders.ChallengeTrackerAPI.models.Role;
 import com.femcoders.ChallengeTrackerAPI.models.User;
 import com.femcoders.ChallengeTrackerAPI.repositories.RoleRepository;
@@ -17,6 +18,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -43,6 +45,27 @@ public class UserService implements UserDetailsService {
         return users.stream()
                 .map(user -> userMapperImpl.entityToDto(user))
                 .toList();
+    }
+
+    @Transactional
+    public UserResponse addUser(UserRequest userRequest) {
+        Optional<User> user = userRepository.findByUsernameIgnoreCase(userRequest.username());
+        if (user.isPresent()) {
+            throw new RuntimeException("User already exists with username: " + userRequest.username());
+        }
+        Optional<User> email = userRepository.findByEmailIgnoreCase((userRequest.email()));
+        if (email.isPresent()) {
+            throw new RuntimeException("Email is already registered: " + userRequest.email());
+        }
+        List<Challenge> initialListOfChallenges = new ArrayList<>();
+        Role userRole = roleRepository.findByRoleNameIgnoreCase("ROLE_USER")
+                .orElseThrow(() -> new EntityNotFoundException("Role", "USER"));
+        List<Role> roles = new ArrayList<>();
+        roles.add(userRole);
+        User newUser = userMapperImpl.dtoToEntity(userRequest, initialListOfChallenges, roles);
+        newUser.setPassword(passwordEncoder.encode(userRequest.password()));
+        User savedUser = userRepository.save(newUser);
+        return userMapperImpl.entityToDto(savedUser);
     }
 
     @Override
