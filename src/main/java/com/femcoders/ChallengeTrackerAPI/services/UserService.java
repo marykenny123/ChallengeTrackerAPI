@@ -122,16 +122,24 @@ public class UserService implements UserDetailsService {
         return userMapperImpl.entityToDto(savedUser);
     }
 
+    public String deleteUser(Long id, UserDetail userDetail) {
+        boolean isAdmin = userDetail.getAuthorities().stream()
+                .anyMatch(auth -> auth.getAuthority().equals("ROLE_ADMIN"));
+        if (!isAdmin) {
+            throw new AccessDeniedException("Only administrators can delete users");
+        }
+        User userToDelete = userRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException(User.class.getSimpleName(), id));
+        userRepository.delete(userToDelete);
+        return "User with id " + id + " has been deleted";
+    }
+
     @Override
     public UserDetail loadUserByUsername(String username) throws EntityNotFoundException {
         User user = userRepository.findByUsernameIgnoreCase(username)
                 .orElseThrow(() -> new EntityNotFoundException(User.class.getSimpleName(), username));
         return new UserDetail(user);
     }
-
-
-    // ---------------------------
-
 
     @Transactional
     public UserResponse registerUser(UserRequest request) {
