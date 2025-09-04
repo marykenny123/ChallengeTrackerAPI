@@ -121,4 +121,16 @@ public class ChallengeService {
         return challengeMapperImpl.entityToDto(updatedChallenge);
     }
 
+    @Transactional
+    public String deleteChallenge(Long id, UserDetail userDetails) {
+        validateUser(userDetails);
+        Challenge challengeToDelete = challengeRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException(Challenge.class.getSimpleName(), id));
+
+                checkOwnership(challengeToDelete, userDetails);
+
+                challengeRepository.delete(challengeToDelete);
+                return "Challenge with id " + id + " has been deleted";
+    }
+
 }
