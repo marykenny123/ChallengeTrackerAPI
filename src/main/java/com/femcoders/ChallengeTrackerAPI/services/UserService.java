@@ -3,6 +3,7 @@ package com.femcoders.ChallengeTrackerAPI.services;
 import com.femcoders.ChallengeTrackerAPI.dtos.user.UserMapperImpl;
 import com.femcoders.ChallengeTrackerAPI.dtos.user.UserRequest;
 import com.femcoders.ChallengeTrackerAPI.dtos.user.UserResponse;
+import com.femcoders.ChallengeTrackerAPI.dtos.user.UserUpdateRequest;
 import com.femcoders.ChallengeTrackerAPI.exceptions.EntityNotFoundException;
 import com.femcoders.ChallengeTrackerAPI.models.Challenge;
 import com.femcoders.ChallengeTrackerAPI.models.Role;
@@ -12,13 +13,13 @@ import com.femcoders.ChallengeTrackerAPI.repositories.UserRepository;
 import com.femcoders.ChallengeTrackerAPI.security.UserDetail;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
+import java.util.*;
+import java.util.stream.Collectors;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -66,6 +67,71 @@ public class UserService implements UserDetailsService {
         newUser.setPassword(passwordEncoder.encode(userRequest.password()));
         User savedUser = userRepository.save(newUser);
         return userMapperImpl.entityToDto(savedUser);
+    }
+
+    public UserResponse updateUser(Long id, UserUpdateRequest userRequest, UserDetail userDetail) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException(User.class.getSimpleName(), id));
+
+        boolean isAdmin = userDetail.getAuthorities().stream()
+                .anyMatch(auth -> auth.getAuthority().equals("ROLE_ADMIN"));
+        boolean isOwner = Objects.equals(userDetail.getId(), id);
+
+        if (!isAdmin && !isOwner) {
+            throw new AccessDeniedException("You don't have permission to update this user");
+        }
+
+        if (userRequest.username() != null && !userRequest.username().isBlank()) {
+            if (!userRequest.username().equals(user.getUsername())) {
+                if (userRepository.findByUsernameIgnoreCase(userRequest.username()).isPresent()) {
+                    throw new IllegalArgumentException("Username already taken");
+                }
+                user.setUsername(userRequest.username());
+            }
+        }
+
+        if (userRequest.email() != null && !userRequest.email().isBlank()) {
+            if (!userRequest.email().equals(user.getEmail())) {
+                if (userRepository.findByEmailIgnoreCase(userRequest.email()).isPresent()) {
+                    throw new IllegalArgumentException("Email is already registered");
+                }
+                user.setEmail(userRequest.email());
+            }
+        }
+
+        if (userRequest.password() != null && !userRequest.password().isBlank()) {
+            if (isAdmin && !isOwner) {
+                throw new AccessDeniedException("Admins are not allowed to change passwords of other users");
+            }
+            user.setPassword(passwordEncoder.encode(userRequest.password()));
+        }
+
+        if (userRequest.roles() != null && !userRequest.roles().isEmpty()) {
+            if (!isAdmin) {
+                throw new AccessDeniedException("Users are not allowed to change their own roles");
+            }
+
+            List<Role> updatedRoles = userRequest.roles().stream()
+                    .map(roleName -> roleRepository.findByRoleNameIgnoreCase(roleName)
+                            .orElseThrow(() -> new RuntimeException("Role not found: " + roleName)))
+                    .collect(Collectors.toCollection(ArrayList::new));
+            user.setRoles(updatedRoles);
+        }
+
+        User savedUser = userRepository.save(user);
+        return userMapperImpl.entityToDto(savedUser);
+    }
+
+    public String deleteUser(Long id, UserDetail userDetail) {
+        boolean isAdmin = userDetail.getAuthorities().stream()
+                .anyMatch(auth -> auth.getAuthority().equals("ROLE_ADMIN"));
+        if (!isAdmin) {
+            throw new AccessDeniedException("Only administrators can delete users");
+        }
+        User userToDelete = userRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException(User.class.getSimpleName(), id));
+        userRepository.delete(userToDelete);
+        return "User with id " + id + " has been deleted";
     }
 
     @Override
